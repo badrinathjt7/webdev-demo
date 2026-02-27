@@ -66,7 +66,7 @@ webdev-demo/
 # 📘 Documentation
 
 ## 🧭 How to Use the Demo
-Step-by-step guide for students and beginners:
+Step-by-step guide for students and beginners on how to use the demo:
 
 👉 [HOW_TO_USE_DEMO.md](HOW_TO_USE_DEMO.md)
 
@@ -74,7 +74,7 @@ Step-by-step guide for students and beginners:
 
 ## 📚 Educational Content (Full Written Version)
 
-Converted from the live teaching script into structured learning material:
+Structured learning material:
 
 👉 [EDUCATIONAL_CONTENT.md](EDUCATIONAL_CONTENT.md)
 
