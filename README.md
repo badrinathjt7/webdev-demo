@@ -34,7 +34,7 @@ Originally developed for a 30-minute educational session (GMeet format), it is n
 
 ---
 
-# 🧠 Learning Structure
+#  Learning Structure
 
 This framework teaches web development in layers:
 
@@ -74,7 +74,7 @@ Step-by-step guide for students and beginners on how to use the demo:
 
 ## 📚 Educational Content (Full Written Version)
 
-Structured learning material:
+Structured learning material on Basics of design , HTML CSS JS, React and Full Stack:
 
 👉 [EDUCATIONAL_CONTENT.md](EDUCATIONAL_CONTENT.md)
 
