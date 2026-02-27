@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Web Dev Live Demo – Interactive Playground</title>
+<style>
+  /* ── TOKENS ── */
+  :root {
+    --bg:      #0b1120;   /* deepest background */
+    --panel:   #1a2540;   /* card / panel surface */
+    --surface: #223058;   /* elevated surfaces */
+    --border:  #2e4170;   /* subtle borders */
+    --accent:  #38bdf8;   /* sky blue – primary */
+    --accent2: #a78bfa;   /* violet – secondary */
+    --accent3: #34d399;   /* emerald – success / positive */
+    --warn:    #fbbf24;   /* amber – warning / highlight */
+    --pink:    #f472b6;   /* pink – extra accent */
+    --white:   #f1f5f9;   /* primary text */
+    --sub:     #94a3b8;   /* secondary text — bright enough to read */
+    --muted:   #64748b;   /* tertiary / labels — only on dark bg with care */
+    --dark:    #060d1a;   /* deepest code bg */
+    --code-fg: #cdd6f4;   /* code editor text */
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--panel);
+    border-bottom: 2px solid var(--accent);
+    padding: 0.45rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 0.9rem; color: var(--accent); font-weight: 800; letter-spacing: 3px; white-space: nowrap; }
+
+  .tabs { display: flex; gap: 0.25rem; flex-wrap: nowrap; }
+  .tab {
+    padding: 0.28rem 0.8rem;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: transparent;
+    color: var(--sub);
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+  .tab.active { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,0.12); }
+  .tab:hover:not(.active) { border-color: var(--sub); color: var(--white); }
+
+  .badge {
+    margin-left: auto;
+    background: rgba(52,211,153,0.12);
+    border: 1px solid var(--accent3);
+    color: var(--accent3);
+    font-size: 0.7rem;
+    padding: 0.18rem 0.6rem;
+    border-radius: 20px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* ── LAYOUT ── */
+  main { flex: 1; overflow: hidden; display: flex; flex-direction: column; }
+  .section { display: none; flex: 1; overflow: hidden; }
+  .section.active { display: flex; }
+
+  /* ── SPLIT PANE (code + preview) ── */
+  .split { display: flex; flex: 1; overflow: hidden; }
+  .pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .pane-header {
+    background: var(--dark);
+    padding: 0.38rem 0.8rem;
+    font-size: 0.7rem;
+    color: var(--sub);
+    font-weight: 600;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .divider-v { width: 3px; background: var(--border); flex-shrink: 0; }
+  .section-divider { width: 3px; background: var(--border); flex-shrink: 0; }
+
+  .code-editor {
+    flex: 1;
+    background: var(--dark);
+    border: none;
+    resize: none;
+    color: var(--code-fg);
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.82rem;
+    padding: 0.8rem;
+    outline: none;
+    line-height: 1.65;
+    overflow: auto;
+  }
+  .preview { flex: 1; background: white; border: none; }
+
+  /* ── DESIGN TAB ── */
+  .design-subtabs {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    flex-shrink: 0;
+    background: var(--dark);
+  }
+  .dsub-btn {
+    flex: 1;
+    padding: 0.42rem 0;
+    font-size: 0.76rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    background: transparent;
+    color: var(--sub);
+    border-bottom: 2px solid transparent;
+    letter-spacing: 1.5px;
+    transition: color 0.15s, border-color 0.15s;
+    margin-bottom: -2px;
+  }
+  .dsub-btn:hover { color: var(--white); }
+  .dsub-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .dsub-panel { flex: 1; overflow: hidden; display: none; }
+  .dsub-panel.active { display: flex; }
+
+  .design-wrap { flex: 1; display: flex; overflow: hidden; }
+  .design-left {
+    flex: 1.1;
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;
+    border-right: 2px solid var(--border);
+    overflow-y: auto;
+  }
+  .design-right {
+    flex: 1;
+    padding: 1.2rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
+  }
+
+  /* swatches */
+  .palette { display: flex; gap: 0.35rem; align-items: center; flex-wrap: wrap; }
+  .swatch {
+    width: 32px; height: 32px; border-radius: 6px; cursor: pointer;
+    border: 2px solid transparent; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0;
+  }
+  .swatch:hover { transform: scale(1.18); }
+  .swatch.sel { border-color: var(--white); transform: scale(1.15); }
+
+  /* controls */
+  .ctrl-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .ctrl-label { font-size: 0.74rem; color: var(--sub); min-width: 82px; font-weight: 500; }
+  .ctrl-select {
+    background: var(--surface);
+    color: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.78rem;
+    cursor: pointer;
+  }
+  .ctrl-range { accent-color: var(--accent); cursor: pointer; flex: 1; max-width: 130px; }
+  .ctrl-val { font-size: 0.72rem; color: var(--accent); min-width: 34px; font-weight: 600; }
+
+  /* section label inside design panels */
+  .ds-label {
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--sub);
+    font-weight: 700;
+    margin-bottom: -0.3rem;
+  }
+
+  /* principle cards */
+  .principle {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    border-left: 3px solid var(--accent);
+  }
+  .principle h4 { font-size: 0.85rem; margin-bottom: 0.22rem; color: var(--white); }
+  .principle p  { font-size: 0.78rem; color: var(--sub); line-height: 1.5; }
+
+  /* insight pill */
+  .insight {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.76rem;
+    color: var(--sub);
+    border-left: 3px solid var(--accent3);
+    line-height: 1.5;
+  }
+  .insight strong { color: var(--accent3); }
+
+  /* live canvas */
+  .canvas-box {
+    background: white;
+    border-radius: 10px;
+    padding: 1.2rem;
+    flex: 1;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.25s;
+  }
+
+  /* info cards in concept tabs */
+  .info-card {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    border-left: 3px solid var(--accent);
+  }
+  .info-card h4 { font-size: 0.88rem; font-weight: 700; color: var(--white); margin-bottom: 0.25rem; }
+  .info-card p  { font-size: 0.78rem; color: var(--sub); line-height: 1.55; }
+
+  /* ── CONCEPT / FULL STACK ── */
+  .concept { flex: 1; overflow-y: auto; padding: 1.4rem 1.8rem; display: flex; flex-direction: column; gap: 1.1rem; }
+  .concept-title { font-size: 1.3rem; font-weight: 800; color: var(--white); }
+  .concept-sub   { font-size: 0.85rem; color: var(--sub); margin-top: -0.6rem; }
+
+  .cards-row { display: flex; gap: 0.9rem; flex-wrap: wrap; }
+  .card {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 0.9rem 1.1rem;
+    flex: 1;
+    min-width: 160px;
+    border-left: 3px solid var(--accent);
+  }
+  .card h3 { font-size: 0.9rem; margin-bottom: 0.3rem; color: var(--white); }
+  .card p  { font-size: 0.78rem; color: var(--sub); line-height: 1.5; }
+  .card code { font-size: 0.75rem; background: var(--panel); padding: 0.1rem 0.3rem; border-radius: 3px; color: var(--accent3); }
+
+  .flow { display: flex; gap: 0; align-items: center; flex-wrap: wrap; }
+  .flow-box {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 0.55rem 0.9rem;
+    text-align: center;
+    flex: 1;
+    min-width: 110px;
+  }
+  .flow-box .tag  { font-size: 0.64rem; color: var(--sub); letter-spacing: 1px; text-transform: uppercase; }
+  .flow-box .name { font-size: 0.88rem; font-weight: 700; margin: 0.18rem 0; color: var(--white); }
+  .flow-box .sub  { font-size: 0.68rem; color: var(--sub); }
+  .flow-arrow { color: var(--sub); font-size: 1.1rem; padding: 0 0.35rem; flex-shrink: 0; }
+
+  /* ── REACT ── */
+  .react-demo { flex: 1; display: flex; overflow: hidden; }
+  .react-code {
+    flex: 1;
+    background: var(--dark);
+    padding: 1rem;
+    font-family: 'Consolas', monospace;
+    font-size: 0.8rem;
+    color: var(--code-fg);
+    overflow: auto;
+    line-height: 1.75;
+  }
+  .react-live {
+    flex: 1;
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1.8rem;
+  }
+
+  /* syntax colours — Dracula-inspired, all high contrast */
+  .kw      { color: #ff79c6; }   /* keywords */
+  .fn      { color: #50fa7b; }   /* functions */
+  .str     { color: #f1fa8c; }   /* strings */
+  .tag-c   { color: #8be9fd; }   /* JSX tags */
+  .prop-c  { color: #ffb86c; }   /* JSX props */
+  .cmt     { color: #6272a4; font-style: italic; }  /* comments */
+  .num-c   { color: #bd93f9; }   /* numbers */
+
+  /* react live */
+  .comp-label { font-size: 0.68rem; color: var(--sub); letter-spacing: 1.5px; text-transform: uppercase; align-self: flex-start; font-weight: 600; }
+  .counter-box {
+    background: var(--dark);
+    border-radius: 12px;
+    border: 1.5px solid var(--accent);
+    padding: 1.1rem 1.8rem;
+    text-align: center;
+    width: 100%;
+  }
+  .counter-num   { font-size: 2.8rem; font-weight: 800; color: var(--accent); line-height: 1; }
+  .counter-label { font-size: 0.74rem; color: var(--sub); margin-top: 0.2rem; }
+  .btn-row { display: flex; gap: 0.5rem; }
+  .btn { padding: 0.38rem 1rem; border-radius: 6px; border: none; cursor: pointer; font-weight: 700; font-size: 0.85rem; transition: transform 0.1s, filter 0.15s; }
+  .btn:hover  { filter: brightness(1.12); }
+  .btn:active { transform: scale(0.95); }
+  .btn.primary   { background: var(--accent);  color: #0b1120; }
+  .btn.secondary { background: var(--accent2); color: #0b1120; }
+  .btn.danger    { background: #ef4444; color: white; }
+
+  .todo-box { background: var(--dark); border-radius: 12px; border: 1.5px solid var(--accent2); padding: 0.9rem 1.1rem; width: 100%; }
+  .todo-input-row { display: flex; gap: 0.45rem; margin-bottom: 0.7rem; }
+  .todo-input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.38rem 0.65rem;
+    color: var(--white);
+    font-size: 0.82rem;
+    outline: none;
+    font-family: inherit;
+  }
+  .todo-input::placeholder { color: var(--muted); }
+  .todo-input:focus { border-color: var(--accent2); }
+  .todo-item { display: flex; align-items: center; gap: 0.55rem; padding: 0.28rem 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; color: var(--white); }
+  .todo-item:last-child { border-bottom: none; }
+  .todo-cb { accent-color: var(--accent2); cursor: pointer; }
+  .done-text { text-decoration: line-through; color: var(--muted); }
+  .del-btn { margin-left: auto; background: none; border: none; color: #f87171; cursor: pointer; font-size: 0.9rem; }
+
+  /* run button */
+  .run-btn {
+    background: var(--accent3);
+    color: #0b1120;
+    font-weight: 800;
+    font-size: 0.8rem;
+    border: none;
+    padding: 0.3rem 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: filter 0.15s;
+    flex-shrink: 0;
+  }
+  .run-btn:hover { filter: brightness(1.1); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⟨/⟩ WEB DEV DEMO</h1>
+  <div class="tabs">
+    <button class="tab active" onclick="showSection('design', this)">0 · Design</button>
+    <button class="tab" onclick="showSection('html', this)">1 · HTML</button>
+    <button class="tab" onclick="showSection('css', this)">2 · CSS</button>
+    <button class="tab" onclick="showSection('js', this)">3 · JavaScript</button>
+    <button class="tab" onclick="showSection('react', this)">4 · React</button>
+    <button class="tab" onclick="showSection('fullstack', this)">5 · Full Stack</button>
+  </div>
+  <span class="badge">● LIVE SESSION</span>
+</header>
+
+<main>
+
+<!-- ══════════════════════════════════════════
+     0 · DESIGN BASICS
+══════════════════════════════════════════ -->
+<div class="section active" id="sec-design" style="flex-direction:column">
+
+  <!-- Sub-nav -->
+  <div class="design-subtabs">
+    <button class="dsub-btn active" id="dbtab-why"  onclick="showDTab('why',  this)">WHY</button>
+    <button class="dsub-btn"        id="dbtab-what" onclick="showDTab('what', this)">WHAT</button>
+    <button class="dsub-btn"        id="dbtab-how"  onclick="showDTab('how',  this)">HOW</button>
+    <button class="dsub-btn"        id="dbtab-rl"   onclick="showDTab('rl',   this)">REAL LIFE</button>
+  </div>
+
+  <!-- WHY -->
+  <div class="dsub-panel active" id="dp-why">
+    <div class="design-wrap">
+      <div class="design-left" style="justify-content:center;gap:1.3rem">
+        <div>
+          <div style="font-size:0.65rem;letter-spacing:2px;color:var(--accent);font-weight:700;margin-bottom:0.5rem">WHY DESIGN FIRST?</div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--white);line-height:1.3;margin-bottom:0.7rem">Code without design is a<br>car without a body.</div>
+          <div style="font-size:0.83rem;color:var(--sub);line-height:1.75">You can write perfect HTML and CSS — but if the result looks chaotic, nobody will use it. Design is not decoration. It's the <span style="color:var(--white);font-weight:600">communication layer</span> between your product and your user.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.55rem">
+          <div class="info-card" style="border-color:var(--accent)">
+            <h4>Users judge in 50ms</h4>
+            <p>Research shows users form a visual opinion of your site in under 50 milliseconds — before they read a single word.</p>
+          </div>
+          <div class="info-card" style="border-color:var(--accent2)">
+            <h4>Bad design = lost trust</h4>
+            <p>94% of first impressions are design-related. A poorly designed app makes users question whether the product is reliable — even if the code is flawless.</p>
+          </div>
+          <div class="info-card" style="border-color:var(--accent3)">
+            <h4>Design reduces dev work</h4>
+            <p>A clear design system means fewer decisions during coding. Consistent spacing, colours, and components = faster builds with fewer bugs.</p>
+          </div>
+        </div>
+      </div>
+      <div class="design-right" style="justify-content:center">
+        <div style="font-size:0.68rem;color:var(--sub);letter-spacing:1px;font-weight:700;margin-bottom:0.3rem">SAME CONTENT · TWO DESIGNS · ONE WINNER</div>
+        <div style="display:flex;gap:0.7rem;flex:1;min-height:0">
+          <!-- Bad design -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:0.4rem">
+            <div style="font-size:0.66rem;color:#f87171;font-weight:700;letter-spacing:1px">✗ NO DESIGN THINKING</div>
+            <div style="flex:1;background:#fff;border-radius:6px;padding:0.9rem;font-family:'Times New Roman',serif;overflow:hidden">
+              <div style="font-size:1rem;color:#000;margin-bottom:5px">WELCOME TO MY APP</div>
+              <div style="font-size:0.7rem;color:#333;margin-bottom:8px">This is a very important application that does many things and you should use it because it is good and has features. Please click below.</div>
+              <button style="background:#000080;color:#ffff00;border:3px outset #888;padding:4px 8px;font-size:0.7rem;cursor:pointer;font-family:'Times New Roman'">CLICK HERE!!!</button>
+              <div style="font-size:0.58rem;color:#888;margin-top:10px">Copyright 2003. Best in IE6.</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;color:var(--accent3);font-size:1.4rem;font-weight:900;flex-shrink:0">→</div>
+          <!-- Good design -->
+          <div style="flex:1;display:flex;flex-direction:column;gap:0.4rem">
+            <div style="font-size:0.66rem;color:var(--accent3);font-weight:700;letter-spacing:1px">✓ WITH DESIGN THINKING</div>
+            <div style="flex:1;background:#fff;border-radius:10px;padding:1rem;font-family:'Segoe UI',sans-serif;box-shadow:0 8px 30px rgba(0,0,0,0.15);overflow:hidden">
+              <div style="font-size:0.62rem;color:#64748b;letter-spacing:2px;font-weight:600;margin-bottom:4px">WELCOME</div>
+              <div style="font-size:1rem;font-weight:800;color:#1e293b;margin-bottom:5px;line-height:1.2">One app. Built for you.</div>
+              <div style="font-size:0.7rem;color:#64748b;margin-bottom:10px;line-height:1.5">Organised, fast, and simple — everything you need, nothing you don't.</div>
+              <button style="background:#2563eb;color:white;border:none;padding:7px 16px;border-radius:6px;font-weight:700;font-size:0.72rem;cursor:pointer;font-family:'Segoe UI',sans-serif">Get started →</button>
+            </div>
+          </div>
+        </div>
+        <div class="insight" style="margin-top:0.4rem">
+          <strong>Key insight:</strong> Both show the same information. Design determines whether users stay or leave.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT -->
+  <div class="dsub-panel" id="dp-what">
+    <div class="design-wrap">
+      <div class="design-left" style="gap:0.9rem">
+        <div>
+          <div style="font-size:0.65rem;letter-spacing:2px;color:var(--accent2);font-weight:700;margin-bottom:0.4rem">WHAT IS DESIGN?</div>
+          <div style="font-size:1.05rem;font-weight:800;color:var(--white);margin-bottom:0.4rem">5 Core Principles Every Developer Needs</div>
+          <div style="font-size:0.8rem;color:var(--sub);line-height:1.6">Design has rules — and they're learnable. You don't need to be an artist.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          <div class="principle" style="border-color:var(--accent)">
+            <h4 style="color:var(--accent)">① Visual Hierarchy</h4>
+            <p>Size, weight, and colour signal importance. H1 > H2 > body text. The eye should naturally flow top → bottom. Big bold text = "read this first."</p>
+          </div>
+          <div class="principle" style="border-color:var(--accent2)">
+            <h4 style="color:var(--accent2)">② Contrast & Readability</h4>
+            <p>Text must be readable. Light grey on white = invisible. WCAG requires 4.5:1 contrast ratio for body text. Dark text on light background is always safest.</p>
+          </div>
+          <div class="principle" style="border-color:var(--accent3)">
+            <h4 style="color:var(--accent3)">③ Whitespace</h4>
+            <p>Empty space is not wasted space. Padding and margins reduce cognitive load and make content scannable. More whitespace = more premium feel.</p>
+          </div>
+          <div class="principle" style="border-color:var(--warn)">
+            <h4 style="color:var(--warn)">④ Consistency</h4>
+            <p>Same button style everywhere. Same spacing scale. Inconsistency makes an app feel broken even if the code is correct. Pick a system and stick to it.</p>
+          </div>
+          <div class="principle" style="border-color:var(--pink)">
+            <h4 style="color:var(--pink)">⑤ Colour Theory (60/30/10)</h4>
+            <p>60% dominant background · 30% neutral surfaces · 10% accent colour. Accent is for CTAs only — overusing it dilutes its power.</p>
+          </div>
+        </div>
+      </div>
+      <div class="design-right" style="gap:0.9rem">
+        <div style="font-size:0.68rem;color:var(--sub);letter-spacing:1px;font-weight:700">HIERARCHY VISUALISED</div>
+        <div style="background:#fff;border-radius:10px;padding:1.2rem;flex:1;min-height:0;overflow:auto">
+          <div style="display:flex;align-items:baseline;gap:0.7rem;padding:0.3rem 0;border-bottom:1px solid #f1f5f9;margin-bottom:0.15rem">
+            <span style="font-size:0.62rem;color:#94a3b8;width:54px;flex-shrink:0">H1 · 32px</span>
+            <span style="font-size:32px;font-weight:800;color:#1e293b;line-height:1">Page Title</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:0.7rem;padding:0.3rem 0;border-bottom:1px solid #f1f5f9;margin-bottom:0.15rem">
+            <span style="font-size:0.62rem;color:#94a3b8;width:54px;flex-shrink:0">H2 · 22px</span>
+            <span style="font-size:22px;font-weight:700;color:#334155">Section Heading</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:0.7rem;padding:0.3rem 0;border-bottom:1px solid #f1f5f9;margin-bottom:0.15rem">
+            <span style="font-size:0.62rem;color:#94a3b8;width:54px;flex-shrink:0">H3 · 16px</span>
+            <span style="font-size:16px;font-weight:600;color:#475569">Sub-section</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:0.7rem;padding:0.3rem 0;border-bottom:1px solid #f1f5f9;margin-bottom:0.15rem">
+            <span style="font-size:0.62rem;color:#94a3b8;width:54px;flex-shrink:0">Body · 14px</span>
+            <span style="font-size:14px;color:#475569;line-height:1.5">Paragraph text — comfortable to read, not too small, not too large.</span>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:0.7rem;padding:0.3rem 0">
+            <span style="font-size:0.62rem;color:#94a3b8;width:54px;flex-shrink:0">Label · 11px</span>
+            <span style="font-size:11px;color:#94a3b8">Supporting metadata or caption</span>
+          </div>
+          <div style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+            <div style="background:#2563eb;color:white;padding:7px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer">Primary CTA</div>
+            <div style="background:#f1f5f9;color:#475569;padding:7px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid #e2e8f0">Secondary</div>
+            <div style="color:#2563eb;padding:7px 10px;font-size:13px;cursor:pointer;text-decoration:underline">Ghost link</div>
+          </div>
+        </div>
+        <div class="insight">
+          <strong>Spacing scale tip:</strong> Use multiples of 4 or 8 for spacing (4px, 8px, 16px, 24px, 32px). This creates natural visual rhythm and is the basis of Tailwind CSS's default scale.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW -->
+  <div class="dsub-panel" id="dp-how">
+    <div class="design-wrap">
+      <!-- Controls -->
+      <div class="design-left" style="gap:1rem">
+        <div>
+          <div style="font-size:0.65rem;letter-spacing:2px;color:var(--accent3);font-weight:700;margin-bottom:0.35rem">HOW — LIVE DESIGN PLAYGROUND</div>
+          <div style="font-size:0.82rem;color:var(--sub);line-height:1.6">Tweak every control and watch the canvas update in real time. This is exactly what CSS gives you.</div>
+        </div>
+
+        <div>
+          <div class="ds-label">🎨 Colour</div>
+          <div style="margin-top:0.7rem;display:flex;flex-direction:column;gap:0.55rem">
+            <div class="ctrl-row">
+              <span class="ctrl-label">Background</span>
+              <div class="palette" id="bg-palette">
+                <div class="swatch sel"  style="background:#ffffff" onclick="setBg('#ffffff','dark',  this)" title="White"></div>
+                <div class="swatch"      style="background:#0f172a" onclick="setBg('#0f172a','light', this)" title="Dark"></div>
+                <div class="swatch"      style="background:#fef3c7" onclick="setBg('#fef3c7','dark',  this)" title="Warm"></div>
+                <div class="swatch"      style="background:#eff6ff" onclick="setBg('#eff6ff','dark',  this)" title="Cool"></div>
+                <div class="swatch"      style="background:#f0fdf4" onclick="setBg('#f0fdf4','dark',  this)" title="Mint"></div>
+              </div>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-label">Accent</span>
+              <div class="palette" id="acc-palette">
+                <div class="swatch sel"  style="background:#2563eb" onclick="setAccent('#2563eb', this)" title="Blue"></div>
+                <div class="swatch"      style="background:#7c3aed" onclick="setAccent('#7c3aed', this)" title="Purple"></div>
+                <div class="swatch"      style="background:#059669" onclick="setAccent('#059669', this)" title="Green"></div>
+                <div class="swatch"      style="background:#dc2626" onclick="setAccent('#dc2626', this)" title="Red"></div>
+                <div class="swatch"      style="background:#d97706" onclick="setAccent('#d97706', this)" title="Amber"></div>
+                <div class="swatch"      style="background:#db2777" onclick="setAccent('#db2777', this)" title="Pink"></div>
+              </div>
+            </div>
+            <div class="insight">
+              <strong>60/30/10 rule:</strong> 60% background · 30% neutral · 10% accent
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="ds-label">✏️ Typography</div>
+          <div style="margin-top:0.7rem;display:flex;flex-direction:column;gap:0.5rem">
+            <div class="ctrl-row">
+              <span class="ctrl-label">Font family</span>
+              <select class="ctrl-select" onchange="setFont(this.value)">
+                <option value="'Segoe UI',sans-serif">Segoe UI (modern)</option>
+                <option value="Georgia,serif">Georgia (editorial)</option>
+                <option value="'Courier New',monospace">Courier New (code)</option>
+                <option value="Impact,sans-serif">Impact (bold)</option>
+                <option value="Palatino,serif">Palatino (elegant)</option>
+              </select>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-label">Heading size</span>
+              <input type="range" class="ctrl-range" min="18" max="52" value="32"
+                oninput="setHeadSize(this.value); document.getElementById('hv').textContent=this.value+'px'" />
+              <span class="ctrl-val" id="hv">32px</span>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-label">Line height</span>
+              <input type="range" class="ctrl-range" min="1.0" max="2.2" step="0.1" value="1.6"
+                oninput="setLineH(this.value); document.getElementById('lv').textContent=this.value" />
+              <span class="ctrl-val" id="lv">1.6</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="ds-label">📐 Spacing & Depth</div>
+          <div style="margin-top:0.7rem;display:flex;flex-direction:column;gap:0.5rem">
+            <div class="ctrl-row">
+              <span class="ctrl-label">Padding</span>
+              <input type="range" class="ctrl-range" min="4" max="44" value="20"
+                oninput="setPad(this.value); document.getElementById('pv').textContent=this.value+'px'" />
+              <span class="ctrl-val" id="pv">20px</span>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-label">Border radius</span>
+              <input type="range" class="ctrl-range" min="0" max="24" value="8"
+                oninput="setRadius(this.value); document.getElementById('rv').textContent=this.value+'px'" />
+              <span class="ctrl-val" id="rv">8px</span>
+            </div>
+            <div class="ctrl-row">
+              <span class="ctrl-label">Shadow</span>
+              <select class="ctrl-select" onchange="setShadow(this.value)">
+                <option value="none">None (flat)</option>
+                <option value="0 2px 8px rgba(0,0,0,0.12)" selected>Subtle</option>
+                <option value="0 8px 30px rgba(0,0,0,0.2)">Elevated</option>
+                <option value="0 20px 60px rgba(0,0,0,0.35)">Dramatic</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live canvas -->
+      <div class="design-right" style="gap:0.9rem">
+        <div style="font-size:0.68rem;color:var(--sub);letter-spacing:1px;font-weight:700">⚡ LIVE CANVAS — changes instantly</div>
+        <div class="canvas-box" id="design-canvas">
+          <!-- Nav -->
+          <div id="dc-nav" style="display:flex;justify-content:space-between;align-items:center;padding:8px 20px;border-radius:8px;background:#f1f5f9">
+            <span id="dc-logo" style="font-weight:800;font-size:0.95rem;color:#2563eb;font-family:'Segoe UI',sans-serif">MyApp</span>
+            <div style="display:flex;gap:1rem">
+              <span style="font-size:0.78rem;color:#64748b;cursor:pointer;font-family:'Segoe UI',sans-serif">Home</span>
+              <span style="font-size:0.78rem;color:#64748b;cursor:pointer;font-family:'Segoe UI',sans-serif">About</span>
+            </div>
+          </div>
+          <!-- Hero -->
+          <div id="dc-hero" style="padding:20px;border-radius:8px;background:rgba(37,99,235,0.07)">
+            <div id="dc-heading" style="font-size:32px;font-weight:800;color:#1e293b;line-height:1.2;margin-bottom:7px;font-family:'Segoe UI',sans-serif">Design Matters 🎨</div>
+            <div id="dc-body" style="font-size:13px;color:#475569;line-height:1.6;margin-bottom:11px;font-family:'Segoe UI',sans-serif">Good design isn't decoration — it's communication. Every spacing, colour, and font choice sends a signal.</div>
+            <button id="dc-btn" style="background:#2563eb;color:white;border:none;padding:9px 20px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;font-family:'Segoe UI',sans-serif">Get Started →</button>
+          </div>
+          <!-- Cards -->
+          <div style="display:flex;gap:7px">
+            <div id="dc-card1" style="flex:1;padding:14px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0">
+              <div style="font-size:1.1rem;margin-bottom:5px">⚡</div>
+              <div id="dc-ch1" style="font-size:13px;font-weight:700;color:#1e293b;font-family:'Segoe UI',sans-serif">Fast</div>
+              <div id="dc-cb1" style="font-size:11px;color:#64748b;margin-top:3px;font-family:'Segoe UI',sans-serif">Optimised for performance</div>
+            </div>
+            <div id="dc-card2" style="flex:1;padding:14px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0">
+              <div style="font-size:1.1rem;margin-bottom:5px">🎯</div>
+              <div id="dc-ch2" style="font-size:13px;font-weight:700;color:#1e293b;font-family:'Segoe UI',sans-serif">Focused</div>
+              <div id="dc-cb2" style="font-size:11px;color:#64748b;margin-top:3px;font-family:'Segoe UI',sans-serif">One clear goal per screen</div>
+            </div>
+            <div id="dc-card3" style="flex:1;padding:14px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0">
+              <div style="font-size:1.1rem;margin-bottom:5px">✨</div>
+              <div id="dc-ch3" style="font-size:13px;font-weight:700;color:#1e293b;font-family:'Segoe UI',sans-serif">Polished</div>
+              <div id="dc-cb3" style="font-size:11px;color:#64748b;margin-top:3px;font-family:'Segoe UI',sans-serif">Details build trust</div>
+            </div>
+          </div>
+        </div>
+        <div class="insight">
+          Try: set Shadow → Dramatic, Background → Dark, Accent → Pink. Watch the personality transform instantly. That's design power.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REAL LIFE -->
+  <div class="dsub-panel" id="dp-rl">
+    <div class="design-wrap">
+      <div class="design-left" style="gap:0.85rem">
+        <div>
+          <div style="font-size:0.65rem;letter-spacing:2px;color:var(--warn);font-weight:700;margin-bottom:0.35rem">REAL-LIFE EXAMPLES</div>
+          <div style="font-size:1.05rem;font-weight:800;color:var(--white);margin-bottom:0.3rem">Design decisions you use every day</div>
+          <div style="font-size:0.8rem;color:var(--sub);line-height:1.6">Let's reverse-engineer apps you already know.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.6rem">
+          <div class="info-card" style="border-color:var(--accent)">
+            <h4>Swiggy / Zomato 🍕</h4>
+            <p><strong style="color:var(--white)">Hierarchy:</strong> Restaurant name big, cuisine small, rating prominent — your eye goes name → rating → price. Intentional.<br>
+            <strong style="color:var(--white)">Colour:</strong> Orange accent = energy + hunger + urgency. Warm colours stimulate appetite.<br>
+            <strong style="color:var(--white)">Whitespace:</strong> Generous card padding makes food images pop.</p>
+          </div>
+          <div class="info-card" style="border-color:var(--accent2)">
+            <h4>Google Search 🔍</h4>
+            <p><strong style="color:var(--white)">Simplicity:</strong> One input, massive whitespace, nothing else. The design says: your one job is to type here.<br>
+            <strong style="color:var(--white)">Familiarity:</strong> Result layout unchanged for 20+ years. Consistency = trust.<br>
+            <strong style="color:var(--white)">Contrast:</strong> Blue links on white = high contrast, instantly scannable.</p>
+          </div>
+          <div class="info-card" style="border-color:var(--accent3)">
+            <h4>WhatsApp 💬</h4>
+            <p><strong style="color:var(--white)">Colour coding:</strong> Green = sent, white = received. No label needed — colour does the job entirely.<br>
+            <strong style="color:var(--white)">Spacing:</strong> Message bubbles with breathing room. Dense = stressful, spaced = readable.</p>
+          </div>
+          <div class="info-card" style="border-color:var(--warn)">
+            <h4>UPI / Paytm 💸</h4>
+            <p><strong style="color:var(--white)">Trust through design:</strong> Clean, minimal, professional. Cluttered payment screens create user anxiety — and abandoned transactions.<br>
+            <strong style="color:var(--white)">CTA prominence:</strong> "Pay" is always the biggest, highest-contrast element. Hierarchy guides the action.</p>
+          </div>
+        </div>
+      </div>
+      <!-- Quiz -->
+      <div class="design-right" style="gap:0.9rem">
+        <div style="font-size:0.68rem;color:var(--sub);letter-spacing:1px;font-weight:700">⚡ DESIGN DECISION QUIZ</div>
+        <div style="background:var(--surface);border-radius:10px;padding:1rem;flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:0.7rem">
+          <div id="quiz-q" style="font-size:0.88rem;font-weight:700;color:var(--white);line-height:1.5"></div>
+          <div id="quiz-opts" style="display:flex;flex-direction:column;gap:0.45rem"></div>
+          <div id="quiz-feedback" style="font-size:0.78rem;line-height:1.55;padding:0.65rem 0.9rem;border-radius:8px;display:none"></div>
+          <button id="quiz-next" onclick="nextQuiz()" style="display:none;background:var(--accent);color:#0b1120;border:none;padding:0.38rem 1.1rem;border-radius:6px;font-weight:700;font-size:0.82rem;cursor:pointer;align-self:flex-start">Next →</button>
+        </div>
+        <div class="insight">
+          <strong>Designer's mindset:</strong> Before writing a single line of CSS, ask — what should the user's eye land on first? What's the primary action? What emotion should this screen convey?
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /sec-design -->
+
+
+<!-- ══════════════════════════════════════════
+     1 · HTML
+══════════════════════════════════════════ -->
+<div class="section" id="sec-html">
+  <div class="split">
+    <div class="pane" style="flex:1.1">
+      <div class="pane-header">
+        <span class="dot" style="background:#ef4444"></span>
+        <span class="dot" style="background:#f59e0b"></span>
+        <span class="dot" style="background:#22c55e"></span>
+        &nbsp;index.html — EDITABLE
+        <button class="run-btn" style="margin-left:auto" onclick="runHTML()">▶ Run</button>
+      </div>
+      <textarea class="code-editor" id="html-code" spellcheck="false">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+  &lt;title&gt;My First Page&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+  &lt;h1&gt;Hello World! 👋&lt;/h1&gt;
+  &lt;p&gt;I am learning &lt;strong&gt;HTML&lt;/strong&gt; today!&lt;/p&gt;
+
+  &lt;h2&gt;Why Web Dev?&lt;/h2&gt;
+  &lt;ul&gt;
+    &lt;li&gt;Build things people use&lt;/li&gt;
+    &lt;li&gt;Runs on any device&lt;/li&gt;
+    &lt;li&gt;Instantly shareable&lt;/li&gt;
+  &lt;/ul&gt;
+
+  &lt;a href="https://developer.mozilla.org"&gt;
+    Learn More →
+  &lt;/a&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</textarea>
+    </div>
+    <div class="divider-v"></div>
+    <div class="pane" style="flex:1">
+      <div class="pane-header" style="background:#f5f5f5;color:#555">
+        <span class="dot" style="background:var(--accent)"></span>
+        BROWSER PREVIEW
+      </div>
+      <iframe class="preview" id="html-preview"></iframe>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     2 · CSS
+══════════════════════════════════════════ -->
+<div class="section" id="sec-css">
+  <div class="split">
+    <div class="pane" style="flex:1.1">
+      <div class="pane-header">
+        <span class="dot" style="background:#ef4444"></span>
+        <span class="dot" style="background:#f59e0b"></span>
+        <span class="dot" style="background:#22c55e"></span>
+        &nbsp;style.css — EDITABLE
+        <button class="run-btn" style="margin-left:auto" onclick="runCSS()">▶ Run</button>
+      </div>
+      <textarea class="code-editor" id="css-code" spellcheck="false">/* CSS styles the HTML below */
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0f172a;
+  color: #e2e8f0;
+  max-width: 600px;
+  margin: 2rem auto;
+  padding: 1rem;
+}
+
+h1 {
+  color: #38bdf8;
+  font-size: 2.5rem;
+  border-bottom: 3px solid #38bdf8;
+  padding-bottom: 0.5rem;
+}
+
+h2 { color: #a78bfa; margin: 1.5rem 0 0.5rem; }
+
+p { font-size: 1.1rem; margin: 1rem 0; }
+
+ul {
+  background: #1e293b;
+  padding: 1rem 1rem 1rem 2rem;
+  border-radius: 8px;
+  border-left: 4px solid #818cf8;
+}
+
+li { margin: 0.4rem 0; }
+
+a {
+  display: inline-block;
+  margin-top: 1rem;
+  background: #34d399;
+  color: #0f172a;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+a:hover { background: #22c55e; }</textarea>
+    </div>
+    <div class="divider-v"></div>
+    <div class="pane" style="flex:1">
+      <div class="pane-header" style="background:#0a0f1a;color:#64748b">
+        <span class="dot" style="background:var(--accent2)"></span>
+        STYLED PREVIEW
+      </div>
+      <iframe class="preview" id="css-preview" style="background:#0f172a"></iframe>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     3 · JavaScript
+══════════════════════════════════════════ -->
+<div class="section" id="sec-js">
+  <div class="split">
+    <div class="pane" style="flex:1.1">
+      <div class="pane-header">
+        <span class="dot" style="background:#ef4444"></span>
+        <span class="dot" style="background:#f59e0b"></span>
+        <span class="dot" style="background:#22c55e"></span>
+        &nbsp;app.js — EDITABLE
+        <button class="run-btn" style="margin-left:auto" onclick="runJS()">▶ Run</button>
+      </div>
+      <textarea class="code-editor" id="js-code" spellcheck="false">// 🌐 JavaScript makes pages interactive
+
+// 1. Variables
+const userName = "Web Dev Student";
+let clickCount = 0;
+
+// 2. Functions
+function greet() {
+  const msg = document.getElementById('message');
+  msg.textContent = `Hello, ${userName}! 🎉`;
+  msg.style.color = '#34d399';
+}
+
+function handleClick() {
+  clickCount++;
+  const btn = document.getElementById('myBtn');
+  const counter = document.getElementById('counter');
+  counter.textContent = `Clicked ${clickCount} time(s)`;
+  btn.style.background = clickCount % 2 === 0
+    ? '#38bdf8' : '#818cf8';
+}
+
+// 3. Arrays & DOM manipulation
+const skills = ['HTML', 'CSS', 'JavaScript', 'React'];
+
+function showSkills() {
+  const list = document.getElementById('skillList');
+  list.innerHTML = skills
+    .map(s => `&lt;li style="color:#fbbf24"&gt;✓ ${s}&lt;/li&gt;`)
+    .join('');
+}
+
+// Run on load
+window.onload = () => { showSkills(); };</textarea>
+    </div>
+    <div class="divider-v"></div>
+    <div class="pane" style="flex:1">
+      <div class="pane-header" style="background:#0a0f1a;color:#64748b">
+        <span class="dot" style="background:var(--accent3)"></span>
+        INTERACTIVE PREVIEW
+      </div>
+      <iframe class="preview" id="js-preview" style="background:#0f172a"></iframe>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     4 · REACT
+══════════════════════════════════════════ -->
+<div class="section" id="sec-react">
+  <div class="react-demo">
+    <div class="pane" style="flex:1.1">
+      <div class="pane-header">
+        <span class="dot" style="background:#ef4444"></span>
+        <span class="dot" style="background:#f59e0b"></span>
+        <span class="dot" style="background:#22c55e"></span>
+        &nbsp;App.jsx — React Components
+      </div>
+      <div class="react-code">
+<span class="cmt">// React = Components + State + Props</span><br><br>
+<span class="kw">import</span> { useState } <span class="kw">from</span> <span class="str">'react'</span>;<br><br>
+<span class="cmt">// ── Component 1: Counter ──────────────</span><br>
+<span class="kw">function</span> <span class="fn">Counter</span>() {<br>
+&nbsp;&nbsp;<span class="kw">const</span> [count, setCount] = <span class="fn">useState</span>(<span class="num-c">0</span>);<br><br>
+&nbsp;&nbsp;<span class="kw">return</span> (<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;div&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;h2&gt;</span>Count: <span class="tag-c">&lt;span&gt;</span>{count}<span class="tag-c">&lt;/span&gt;&lt;/h2&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;button</span> <span class="prop-c">onClick</span>={() =&gt; <span class="fn">setCount</span>(count + <span class="num-c">1</span>)}<span class="tag-c">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ Increment<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;/button&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;button</span> <span class="prop-c">onClick</span>={() =&gt; <span class="fn">setCount</span>(count - <span class="num-c">1</span>)}<span class="tag-c">&gt;</span>− Decrement<span class="tag-c">&lt;/button&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;button</span> <span class="prop-c">onClick</span>={() =&gt; <span class="fn">setCount</span>(<span class="num-c">0</span>)}<span class="tag-c">&gt;</span>Reset<span class="tag-c">&lt;/button&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;/div&gt;</span><br>
+&nbsp;&nbsp;);<br>
+}<br><br>
+<span class="cmt">// ── Component 2: TodoList ─────────────</span><br>
+<span class="kw">function</span> <span class="fn">TodoList</span>() {<br>
+&nbsp;&nbsp;<span class="kw">const</span> [todos, setTodos] = <span class="fn">useState</span>([]);<br>
+&nbsp;&nbsp;<span class="kw">const</span> [input, setInput] = <span class="fn">useState</span>(<span class="str">''</span>);<br><br>
+&nbsp;&nbsp;<span class="kw">const</span> <span class="fn">addTodo</span> = () =&gt; {<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="kw">if</span> (!input.trim()) <span class="kw">return</span>;<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">setTodos</span>([...todos, { text: input, done: <span class="kw">false</span> }]);<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="fn">setInput</span>(<span class="str">''</span>);<br>
+&nbsp;&nbsp;};<br><br>
+&nbsp;&nbsp;<span class="kw">return</span> (<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;div&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;input</span> <span class="prop-c">value</span>={input} <span class="prop-c">onChange</span>={e =&gt; <span class="fn">setInput</span>(e.target.value)} <span class="tag-c">/&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;button</span> <span class="prop-c">onClick</span>={addTodo}<span class="tag-c">&gt;</span>Add<span class="tag-c">&lt;/button&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{todos.<span class="fn">map</span>((t, i) =&gt; (<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;p</span> <span class="prop-c">key</span>={i}<span class="tag-c">&gt;</span>{t.text}<span class="tag-c">&lt;/p&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;))}<br>
+&nbsp;&nbsp;&nbsp;&nbsp;<span class="tag-c">&lt;/div&gt;</span><br>
+&nbsp;&nbsp;);<br>
+}
+      </div>
+    </div>
+    <div class="section-divider"></div>
+    <div class="react-live">
+      <span class="comp-label">⬡ Live Component: Counter</span>
+      <div class="counter-box">
+        <div class="counter-num" id="react-count">0</div>
+        <div class="counter-label">useState — re-renders on every change</div>
+        <div class="btn-row" style="justify-content:center;margin-top:0.8rem">
+          <button class="btn primary"   onclick="reactCount(1)">+ Increment</button>
+          <button class="btn secondary" onclick="reactCount(-1)">− Decrement</button>
+          <button class="btn danger"    onclick="reactCount(0, true)">Reset</button>
+        </div>
+      </div>
+      <span class="comp-label" style="margin-top:0.4rem">⬡ Live Component: TodoList</span>
+      <div class="todo-box">
+        <div class="todo-input-row">
+          <input class="todo-input" id="todo-input" placeholder="Add a task..."
+            onkeydown="if(event.key==='Enter') addTodo()" />
+          <button class="btn primary" onclick="addTodo()" style="padding:0.38rem 0.85rem;font-size:0.78rem">Add</button>
+        </div>
+        <div id="todo-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     5 · FULL STACK
+══════════════════════════════════════════ -->
+<div class="section" id="sec-fullstack">
+  <div class="concept">
+    <div class="concept-title">Full Stack Architecture</div>
+    <div class="concept-sub">How all the pieces connect in a real-world web application</div>
+
+    <div class="flow">
+      <div class="flow-box" style="border:2px solid var(--accent)">
+        <div class="tag" style="color:var(--accent)">User</div>
+        <div class="name">Browser</div>
+        <div class="sub">React · HTML · CSS</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="border:2px solid var(--warn)">
+        <div class="tag" style="color:var(--warn)">HTTP</div>
+        <div class="name">API Request</div>
+        <div class="sub">GET /api/todos</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="border:2px solid var(--accent2)">
+        <div class="tag" style="color:var(--accent2)">Backend</div>
+        <div class="name">Server</div>
+        <div class="sub">Node.js · Express</div>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-box" style="border:2px solid var(--accent3)">
+        <div class="tag" style="color:var(--accent3)">DB</div>
+        <div class="name">Database</div>
+        <div class="sub">MongoDB · Postgres</div>
+      </div>
+      <div class="flow-arrow">←</div>
+      <div class="flow-box" style="border:2px solid var(--warn)">
+        <div class="tag" style="color:var(--warn)">Response</div>
+        <div class="name">JSON Data</div>
+        <div class="sub">[{…}, {…}]</div>
+      </div>
+    </div>
+
+    <div class="cards-row">
+      <div class="card" style="border-color:var(--accent)">
+        <h3 style="color:var(--accent)">Frontend (React)</h3>
+        <p>Renders the UI. Makes HTTP requests via <code>fetch()</code> or Axios. Updates the UI when data arrives.</p>
+      </div>
+      <div class="card" style="border-color:var(--warn)">
+        <h3 style="color:var(--warn)">REST API</h3>
+        <p>Endpoints like <code>/api/users</code>. Handles GET, POST, PUT, DELETE. Returns JSON — no HTML.</p>
+      </div>
+      <div class="card" style="border-color:var(--accent2)">
+        <h3 style="color:var(--accent2)">Backend (Node/Express)</h3>
+        <p>Runs on the server. Business logic, auth, validation. Talks to the DB. Never seen by the user.</p>
+      </div>
+      <div class="card" style="border-color:var(--accent3)">
+        <h3 style="color:var(--accent3)">Database</h3>
+        <p>Persistent storage. SQL for structured data (Postgres). NoSQL for flexible schemas (MongoDB).</p>
+      </div>
+    </div>
+
+    <!-- API Simulator -->
+    <div style="background:var(--dark);border-radius:10px;border:1.5px solid var(--accent2);padding:1rem">
+      <div style="font-size:0.72rem;color:var(--sub);letter-spacing:1px;margin-bottom:0.6rem;font-weight:600">⚡ SIMULATE AN API CALL</div>
+      <div style="display:flex;gap:0.6rem;align-items:center;flex-wrap:wrap">
+        <select id="api-method" style="background:var(--surface);color:var(--accent);border:1px solid var(--accent);border-radius:5px;padding:0.28rem 0.6rem;font-weight:700;font-size:0.82rem">
+          <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option>
+        </select>
+        <input id="api-endpoint" value="/api/todos"
+          style="background:var(--surface);color:var(--white);border:1px solid var(--border);border-radius:5px;padding:0.28rem 0.65rem;font-family:monospace;font-size:0.82rem;width:190px;outline:none" />
+        <button class="btn primary" onclick="simulateAPI()" style="padding:0.28rem 0.9rem;font-size:0.8rem">Send Request</button>
+      </div>
+      <div id="api-response" style="display:none;margin-top:0.8rem;font-family:monospace;font-size:0.76rem;color:var(--accent3);line-height:1.65;white-space:pre-wrap"></div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════
+// SECTION SWITCHING
+// ═══════════════════════════════════════════
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'html') runHTML();
+  if (name === 'css')  runCSS();
+  if (name === 'js')   runJS();
+}
+
+// ═══════════════════════════════════════════
+// DESIGN SUB-TABS
+// ═══════════════════════════════════════════
+function showDTab(name, btn) {
+  document.querySelectorAll('.dsub-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.dsub-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('dp-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'rl') { quizIdx = 0; quizAnswered = false; loadQuiz(); }
+}
+
+// ═══════════════════════════════════════════
+// LIVE CANVAS
+// ═══════════════════════════════════════════
+const dc = {
+  bg: '#ffffff', textMode: 'dark', accent: '#2563eb',
+  font: "'Segoe UI',sans-serif", headSize: 32,
+  lineH: 1.6, pad: 20, radius: 8,
+  shadow: '0 2px 8px rgba(0,0,0,0.12)'
+};
+
+function applyCanvas() {
+  const canvas = document.getElementById('design-canvas');
+  if (!canvas) return;
+  const textColor = dc.textMode === 'dark' ? '#1e293b' : '#f1f5f9';
+  const subColor  = dc.textMode === 'dark' ? '#475569' : '#94a3b8';
+  const cardBg    = dc.textMode === 'dark' ? '#f8fafc' : 'rgba(255,255,255,0.07)';
+  const heroBg    = dc.textMode === 'dark' ? 'rgba(37,99,235,0.07)' : 'rgba(255,255,255,0.09)';
+  const navBg     = dc.textMode === 'dark' ? '#f1f5f9' : 'rgba(255,255,255,0.06)';
+
+  canvas.style.background = dc.bg;
+
+  // heading
+  const h = document.getElementById('dc-heading');
+  if (h) { h.style.fontSize = dc.headSize + 'px'; h.style.color = textColor; h.style.lineHeight = dc.lineH; h.style.fontFamily = dc.font; }
+
+  // body paragraphs
+  ['dc-body','dc-cb1','dc-cb2','dc-cb3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.color = subColor; el.style.lineHeight = dc.lineH; el.style.fontFamily = dc.font; }
+  });
+
+  // card headings
+  ['dc-ch1','dc-ch2','dc-ch3'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.style.color = textColor; el.style.fontFamily = dc.font; }
+  });
+
+  // logo
+  const logo = document.getElementById('dc-logo');
+  if (logo) { logo.style.color = dc.accent; logo.style.fontFamily = dc.font; }
+
+  // CTA button
+  const btn = document.getElementById('dc-btn');
+  if (btn) {
+    btn.style.background   = dc.accent;
+    btn.style.padding      = `${Math.round(dc.pad * 0.5)}px ${dc.pad}px`;
+    btn.style.borderRadius = dc.radius + 'px';
+    btn.style.fontFamily   = dc.font;
+  }
+
+  // hero
+  const hero = document.getElementById('dc-hero');
+  if (hero) { hero.style.padding = dc.pad + 'px'; hero.style.borderRadius = dc.radius + 'px'; hero.style.background = heroBg; }
+
+  // nav
+  const nav = document.getElementById('dc-nav');
+  if (nav) { nav.style.padding = `${Math.round(dc.pad * 0.4)}px ${dc.pad}px`; nav.style.background = navBg; }
+
+  // cards
+  ['dc-card1','dc-card2','dc-card3'].forEach(id => {
+    const c = document.getElementById(id);
+    if (!c) return;
+    c.style.padding      = Math.round(dc.pad * 0.75) + 'px';
+    c.style.borderRadius = dc.radius + 'px';
+    c.style.background   = cardBg;
+  });
+
+  // canvas shadow
+  canvas.style.boxShadow = dc.shadow;
+}
+
+function setBg(color, textMode, el) {
+  dc.bg = color; dc.textMode = textMode;
+  document.querySelectorAll('#bg-palette .swatch').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+  applyCanvas();
+}
+function setAccent(color, el) {
+  dc.accent = color;
+  document.querySelectorAll('#acc-palette .swatch').forEach(s => s.classList.remove('sel'));
+  el.classList.add('sel');
+  applyCanvas();
+}
+function setFont(f)    { dc.font = f;              applyCanvas(); }
+function setHeadSize(v){ dc.headSize = parseInt(v); applyCanvas(); }
+function setLineH(v)   { dc.lineH = parseFloat(v); applyCanvas(); }
+function setPad(v)     { dc.pad = parseInt(v);      applyCanvas(); }
+function setRadius(v)  { dc.radius = parseInt(v);  applyCanvas(); }
+function setShadow(v)  { dc.shadow = v;             applyCanvas(); }
+
+// ═══════════════════════════════════════════
+// CODE RUNNERS
+// ═══════════════════════════════════════════
+function runHTML() {
+  const frame = document.getElementById('html-preview');
+  frame.srcdoc = document.getElementById('html-code').value;
+}
+
+function runCSS() {
+  const css  = document.getElementById('css-code').value;
+  const html = `<h1>Hello World! 👋</h1>
+<p>I am learning <strong>HTML</strong> today!</p>
+<h2>Why Web Dev?</h2>
+<ul>
+  <li>Build things people use</li>
+  <li>Runs on any device</li>
+  <li>Instantly shareable</li>
+</ul>
+<a href="#">Learn More →</a>`;
+  document.getElementById('css-preview').srcdoc = `<style>${css}</style>${html}`;
+}
+
+function runJS() {
+  const raw  = document.getElementById('js-code').value;
+  const code = raw.replace(/&lt;/g,'<').replace(/&gt;/g,'>');
+  const html = `<!DOCTYPE html><html><head><style>
+    body { font-family: 'Segoe UI',sans-serif; background:#0b1120; color:#f1f5f9; padding:1.4rem; }
+    #message { font-size:1.2rem; font-weight:700; min-height:1.8rem; color:#94a3b8; }
+    button { background:#38bdf8; color:#0b1120; border:none; padding:0.45rem 1.1rem; border-radius:6px;
+             cursor:pointer; font-weight:700; font-size:0.85rem; margin:0.25rem; transition:background 0.25s; }
+    #counter { margin:0.45rem 0; color:#fbbf24; font-weight:700; }
+    h3 { color:#38bdf8; margin-top:1rem; }
+    ul { background:#1a2540; padding:0.75rem 1rem 0.75rem 1.8rem; border-radius:8px; border-left:4px solid #a78bfa; }
+    li { margin:0.3rem 0; }
+  </style></head><body>
+    <p id="message">← Click Greet to start</p>
+    <button onclick="greet()">Greet Me!</button>
+    <button id="myBtn" onclick="handleClick()">Click Counter</button>
+    <p id="counter">Clicked 0 time(s)</p>
+    <h3>My Skills:</h3>
+    <ul id="skillList"></ul>
+    <script>${code.replace(/<\/script>/gi,'<\\/script>')}<\/script>
+  </body></html>`;
+  document.getElementById('js-preview').srcdoc = html;
+}
+
+// ═══════════════════════════════════════════
+// REACT LIVE
+// ═══════════════════════════════════════════
+let countVal = 0;
+let todos    = [];
+
+function reactCount(delta, reset = false) {
+  countVal = reset ? 0 : countVal + delta;
+  const el = document.getElementById('react-count');
+  el.textContent = countVal;
+  el.style.color = countVal > 0 ? '#34d399' : countVal < 0 ? '#f87171' : '#38bdf8';
+}
+
+function addTodo() {
+  const inp  = document.getElementById('todo-input');
+  const text = inp.value.trim();
+  if (!text) return;
+  todos.push({ text, done: false });
+  inp.value = '';
+  renderTodos();
+}
+function toggleTodo(i) { todos[i].done = !todos[i].done; renderTodos(); }
+function deleteTodo(i)  { todos.splice(i, 1); renderTodos(); }
+function renderTodos() {
+  const list = document.getElementById('todo-list');
+  if (!todos.length) {
+    list.innerHTML = '<div style="color:#64748b;font-size:0.8rem;text-align:center;padding:0.5rem">No tasks yet!</div>';
+    return;
+  }
+  list.innerHTML = todos.map((t, i) => `
+    <div class="todo-item">
+      <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''} onchange="toggleTodo(${i})" />
+      <span class="${t.done ? 'done-text' : ''}">${t.text}</span>
+      <button class="del-btn" onclick="deleteTodo(${i})">✕</button>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// API SIMULATOR
+// ═══════════════════════════════════════════
+const fakeDB = {
+  GET:    { '/api/todos': [{id:1,text:'Learn HTML',done:true},{id:2,text:'Learn CSS',done:true},{id:3,text:'Learn React',done:false}],
+            '/api/users': [{id:1,name:'Alice',role:'student'},{id:2,name:'Bob',role:'teacher'}] },
+  POST:   { '/api/todos': {id:4,text:'New task created',done:false,status:'201 Created'} },
+  PUT:    { '/api/todos': {status:'200 OK',message:'Resource updated',updated:true} },
+  DELETE: { '/api/todos': {status:'204 No Content',message:'Deleted successfully',deleted:true} },
+};
+function simulateAPI() {
+  const method   = document.getElementById('api-method').value;
+  const endpoint = document.getElementById('api-endpoint').value;
+  const resEl    = document.getElementById('api-response');
+  resEl.style.display = 'block';
+  resEl.style.color   = '#64748b';
+  resEl.textContent   = '⏳ Sending request...';
+  setTimeout(() => {
+    const data   = (fakeDB[method] || {})[endpoint] || (fakeDB[method] || {})['/api/todos'];
+    const status = method === 'POST' ? 201 : method === 'DELETE' ? 204 : 200;
+    resEl.style.color = '#34d399';
+    resEl.textContent = `✓ ${method} ${endpoint}  →  ${status}\n\n` + JSON.stringify(data, null, 2);
+  }, 550);
+}
+
+// ═══════════════════════════════════════════
+// DESIGN QUIZ
+// ═══════════════════════════════════════════
+const quizData = [
+  { q: "You're designing a 'Buy Now' button. Which approach is correct?",
+    opts: ["Make it grey so it doesn't distract from the product image",
+           "Make it the highest-contrast, most prominent element on the page",
+           "Use a small font so it looks elegant",
+           "Put it at the very bottom so users scroll to it"],
+    correct: 1,
+    feedback: "✓ Right! The primary CTA must be the most visually dominant element. Hierarchy guides users to the action you want. Grey = invisible = no conversions." },
+  { q: "A client wants 5 different accent colours on their homepage. What do you advise?",
+    opts: ["Great idea — more colour = more energy!",
+           "Stick to the 60/30/10 rule — one dominant accent. Multiple colours dilute hierarchy.",
+           "Use all 5 but make them smaller",
+           "Fine as long as fonts are consistent"],
+    correct: 1,
+    feedback: "✓ Exactly. 60/30/10: 60% background, 30% neutral, 10% accent only. Overusing accent means nothing stands out — everything competes for attention." },
+  { q: "Users say your app 'feels cluttered' even though all the content is important. The fix?",
+    opts: ["Remove some content",
+           "Make the font smaller so more fits",
+           "Increase whitespace — padding, margins, line-height",
+           "Add a border around every section"],
+    correct: 2,
+    feedback: "✓ Whitespace is the answer. Breathing room reduces cognitive load and makes content scannable. Borders add noise. More whitespace = more premium feel." },
+  { q: "Body text set to #cccccc on a white background is hard to read. Why?",
+    opts: ["Wrong font choice",
+           "Contrast ratio too low — WCAG requires 4.5:1 for body text",
+           "Font size is too small",
+           "White backgrounds always cause eye strain"],
+    correct: 1,
+    feedback: "✓ Contrast. Light grey on white can be as low as 1.6:1 — far below WCAG's 4.5:1 minimum. Use #374151 or darker on white. Accessibility isn't optional." },
+  { q: "Which creates the strongest visual hierarchy for a modern web app?",
+    opts: ["Comic Sans headings, Times New Roman body",
+           "Same font at 12px headings and 13px body",
+           "Bold 32px heading + clean 14px body — strong size and weight contrast",
+           "All caps everywhere for consistency"],
+    correct: 2,
+    feedback: "✓ Size contrast + weight contrast = clear hierarchy. 32px bold vs 14px regular gives the eye a clear path. Same-size text is impossible to scan. All caps fatigue readers." },
+];
+
+let quizIdx = 0;
+let quizAnswered = false;
+
+function loadQuiz() {
+  const q = quizData[quizIdx];
+  quizAnswered = false;
+  const qEl = document.getElementById('quiz-q');
+  const fbEl = document.getElementById('quiz-feedback');
+  const nxEl = document.getElementById('quiz-next');
+  if (!qEl) return;
+  qEl.textContent = `Q${quizIdx + 1} of ${quizData.length}: ${q.q}`;
+  fbEl.style.display = 'none';
+  nxEl.style.display = 'none';
+  nxEl.textContent   = 'Next →';
+  document.getElementById('quiz-opts').innerHTML = q.opts.map((o, i) => `
+    <div onclick="answerQuiz(${i})" id="qo-${i}"
+      style="background:var(--panel);border:1.5px solid var(--border);border-radius:8px;
+             padding:0.5rem 0.85rem;cursor:pointer;font-size:0.79rem;color:var(--white);
+             transition:border-color 0.15s,background 0.15s;"
+      onmouseover="if(!this.dataset.done)this.style.borderColor='var(--accent)'"
+      onmouseout="if(!this.dataset.done)this.style.borderColor='var(--border)'">
+      <span style="color:var(--sub);margin-right:0.45rem">${String.fromCharCode(65+i)}.</span>${o}
+    </div>`).join('');
+}
+
+function answerQuiz(idx) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const q    = quizData[quizIdx];
+  const opts = document.querySelectorAll('[id^="qo-"]');
+  opts.forEach((el, i) => {
+    el.dataset.done  = '1';
+    el.style.cursor  = 'default';
+    el.onmouseover   = null;
+    el.onmouseout    = null;
+    if (i === q.correct) { el.style.borderColor = '#34d399'; el.style.background = 'rgba(52,211,153,0.1)'; }
+    else if (i === idx)  { el.style.borderColor = '#f87171'; el.style.background = 'rgba(248,113,113,0.1)'; }
+  });
+  const fb = document.getElementById('quiz-feedback');
+  fb.style.display    = 'block';
+  fb.style.background = idx === q.correct ? 'rgba(52,211,153,0.1)'  : 'rgba(248,113,113,0.08)';
+  fb.style.borderLeft = `3px solid ${idx === q.correct ? '#34d399' : '#f87171'}`;
+  fb.style.color      = idx === q.correct ? '#6ee7b7' : '#fca5a5';
+  fb.style.padding    = '0.6rem 0.85rem';
+  fb.style.borderRadius = '6px';
+  fb.textContent = q.feedback;
+  const nx = document.getElementById('quiz-next');
+  nx.style.display = 'inline-block';
+  if (quizIdx >= quizData.length - 1) {
+    nx.textContent = '↺ Restart';
+    nx.onclick = () => { quizIdx = 0; loadQuiz(); };
+  }
+}
+function nextQuiz() { quizIdx++; loadQuiz(); }
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+applyCanvas();
+renderTodos();
+// quiz loaded on demand when REAL LIFE tab is clicked
+</script>
+</body>
+</html>
