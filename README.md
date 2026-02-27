@@ -244,7 +244,7 @@ Planned enhancements:
 
 ---
 
-# 👤 Author
+# Author
 
 ---
 
@@ -252,10 +252,10 @@ Planned enhancements:
 
 **Badrinath J.T**
 
-- 💼 LinkedIn: [LinkedIn](https://www.linkedin.com/in/badrinath-j-t-3349a627b/)
-- 🌐 Portfolio:[Portfolio](https://badrinathjt.lovable.app/)
-- 🧠 GitHub: [https://github.com/badrinathjt7](https://github.com/badrinathjt7)
-
+- [💼 LinkedIn](https://www.linkedin.com/in/badrinath-j-t-3349a627b/)
+- [🌐 Portfolio](https://badrinathjt.lovable.app/)
+- [🧠 GitHub](https://github.com/badrinathjt7)
+  
 I build structured learning systems and scalable web applications.
 
 ---
